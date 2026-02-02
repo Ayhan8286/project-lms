@@ -1,0 +1,495 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Course {
+  id          String  @id @default(uuid())
+  userId      String
+  title       String 
+  description String? 
+  imageUrl    String? 
+  price       Float?
+  isPublished Boolean @default(false)
+
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+
+  attachments Attachment[]
+  chapters    Chapter[]
+  purchases   Invoice[]
+  reviews     Review[]
+  certificates Certificate[]
+  wishlists   Wishlist[]
+  coupons     Coupon[]
+  quizzes     Quiz[]
+
+  deletedAt DateTime? // Soft Delete
+  prerequisiteId String? // Prerequisite System
+  prerequisite Course? @relation("Prerequisites", fields: [prerequisiteId], references: [id])
+  dependents Course[] @relation("Prerequisites")
+
+  bundles Bundle[] // Implicit many-to-many
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model Category {
+  id      String   @id @default(uuid())
+  name    String   @unique
+  courses Course[]
+}
+
+model Attachment {
+  id   String @id @default(uuid())
+  name String
+  url  String
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model Chapter {
+  id          String  @id @default(uuid())
+  title       String
+  description String? 
+  videoUrl    String? 
+  position    Int
+  isPublished Boolean @default(false)
+  isFree      Boolean @default(false)
+  isLive      Boolean @default(false)
+
+  muxData MuxData?
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  userProgress UserProgress[]
+  notes        Note[]
+  comments     Comment[]
+  assignment   Assignment?
+  quiz         Quiz?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model MuxData {
+  id         String  @id @default(uuid())
+  assetId    String
+  playbackId String?
+
+  chapterId String  @unique
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+}
+
+model UserProgress {
+  id     String @id @default(uuid())
+  userId String // External user ID from Clerk/Auth
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  isCompleted Boolean @default(false)
+  score Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+  @@index([userId])
+  @@unique([userId, chapterId])
+}
+
+model Subscription {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  isActive  Boolean   @default(false)
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model Invoice {
+  id     String @id @default(uuid())
+  userId String 
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  amount      Float
+  status      String @default("PENDING") // PENDING, PAID, VOID
+  challanUrl  String? // URL to generated PDF if we store it
+  
+  dueDate     DateTime
+  paidAt      DateTime?
+  
+  isGift      Boolean @default(false)
+  affiliateCode String? 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([courseId])
+}
+
+// ... existing models ...
+
+model Affiliate {
+  id String @id @default(uuid())
+  userId String @unique
+  code String @unique
+  earnings Float @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model Review {
+  id String @id @default(uuid())
+  userId String
+  
+  courseId String
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  rating Int
+  comment String? // SQLite doesn't support Text/LongText difference usually, String is fine
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([userId])
+}
+
+model Note {
+    id String @id @default(uuid())
+    userId String
+    
+    chapterId String
+    chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+    
+    content String
+    time Float? // timestamp in video
+    
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([chapterId])
+    @@index([userId])
+}
+
+model Certificate {
+    id String @id @default(uuid())
+    userId String
+    
+    courseId String
+    course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    
+    issuedAt DateTime @default(now())
+    uniqueCode String @default(cuid()) // Verification code
+
+    @@unique([userId, courseId])
+    @@index([userId])
+    @@index([courseId])
+}
+
+model Wishlist {
+    id String @id @default(uuid())
+    userId String
+    courseId String
+    course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now())
+    
+    @@unique([userId, courseId])
+    @@index([userId])
+    @@index([courseId])
+}
+
+model TeacherProfile {
+    id String @id @default(uuid())
+    userId String @unique
+    bio String?
+    websiteUrl String?
+    twitterUrl String?
+    linkedinUrl String?
+    
+    @@index([userId])
+}
+
+model Comment {
+  id String @id @default(uuid())
+  content String
+  userId String
+  chapterId String
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([chapterId])
+  @@index([userId])
+}
+
+model Coupon {
+  id String @id @default(uuid())
+  code String @unique
+  discountAmount Float 
+  courseId String? 
+  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  
+  @@index([courseId])
+}
+
+model Notification {
+  id String @id @default(uuid())
+  userId String
+  title String
+  message String
+  isRead Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model UserPoints {
+  id String @id @default(uuid())
+  userId String @unique
+  xp Int @default(0)
+  level Int @default(1)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Assignment {
+  id String @id @default(uuid())
+  chapterId String @unique
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  
+  instruction String
+  
+  submissions AssignmentSubmission[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+model AssignmentSubmission {
+  id String @id @default(uuid())
+  assignmentId String
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  userId String
+  
+  fileUrl String
+  fileName String
+  
+  grade Int? // 0-100
+  feedback String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([assignmentId, userId])
+  @@index([assignmentId])
+  @@index([userId])
+}
+
+// --- PHASE 4 MODELS ---
+
+// 1. Security & Auth
+model Permission {
+  id String @id @default(uuid())
+  name String 
+  userId String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model SystemLog {
+  id String @id @default(uuid())
+  action String 
+  entityType String
+  entityId String?
+  userId String
+  metadata String? // JSON string
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}
+
+// 2. Content Engine
+model Quiz {
+  id String @id @default(uuid())
+  title String
+  
+  courseId String
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  chapterId String? @unique
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  
+  questions Question[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([chapterId])
+}
+
+model Question {
+  id String @id @default(uuid())
+  quizId String
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  prompt String
+  answers Answer[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([quizId])
+}
+
+model Answer {
+  id String @id @default(uuid())
+  questionId String
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text String
+  isCorrect Boolean @default(false)
+
+  @@index([questionId])
+}
+
+model BlogPost {
+  id String @id @default(uuid())
+  title String
+  slug String @unique
+  content String 
+  isPublished Boolean @default(false)
+  authorId String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([authorId])
+  @@index([slug])
+}
+
+// 3. Bundles
+model Bundle {
+  id String @id @default(uuid())
+  title String
+  description String?
+  price Float
+  courses Course[] // Implicit many-to-many
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 4. Messaging System
+model Conversation {
+  id String @id @default(uuid())
+  memberOneId String
+  memberTwoId String
+  
+  messages Message[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([memberOneId, memberTwoId])
+  @@index([memberTwoId])
+  @@index([memberOneId])
+}
+
+model Message {
+  id String @id @default(uuid())
+  content String
+  fileUrl String?
+  
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  senderId String
+  deleted Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+model Attendance {
+  id String @id @default(uuid())
+  userId String
+  courseId String
+  chapterId String? // Optional if we track course-level attendance, but usually chapter-level
+  
+  date DateTime @default(now())
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([courseId])
+  @@index([chapterId])
+  @@index([userId])
+}
+
+model ParentStudent {
+  id String @id @default(uuid())
+  parentId String
+  studentId String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+}
+
+model SystemSetting {
+  id String @id @default(uuid())
+  key String @unique // e.g. "maintenance_mode", "platform_name"
+  value String // e.g. "true", "My LMS"
+  
+  updatedBy String // UserId of admin who changed it
+  updatedAt DateTime @updatedAt
+  
+  @@index([key])
+}
