@@ -21,8 +21,12 @@ interface PriceFormProps {
 };
 
 const formSchema = z.object({
-    price: z.coerce.number(),
+    price: z.coerce.number().min(0),
 });
+
+type FormValues = {
+    price: number;
+};
 
 export const PriceForm = ({
     initialData,
@@ -34,16 +38,17 @@ export const PriceForm = ({
 
     const router = useRouter();
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
+    const form = useForm<FormValues>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        resolver: zodResolver(formSchema) as any,
         defaultValues: {
-            price: initialData.price || undefined,
+            price: initialData.price ?? 0,
         },
     });
 
     const { isSubmitting, isValid } = form.formState;
 
-    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const onSubmit = async (values: FormValues) => {
         try {
             await axios.patch(`/api/courses/${courseId}`, values);
             toast.success("Course updated");

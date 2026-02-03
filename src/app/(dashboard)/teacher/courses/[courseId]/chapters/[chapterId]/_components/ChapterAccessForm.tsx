@@ -36,7 +36,8 @@ export const ChapterAccessForm = ({
     const router = useRouter();
 
     const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        resolver: zodResolver(formSchema) as any,
         defaultValues: {
             isFree: !!initialData.isFree
         },

@@ -52,7 +52,7 @@ const AssignmentPage = async ({
 
     const submissionsWithUser = assignment ? await Promise.all(
         assignment.submissions.map(async (sub) => {
-            let user = null;
+            let user: { fullName: string | null; email: string | null } | undefined = undefined;
             try {
                 // If using newer Clerk SDK, it might be clerkClient.users.getUser
                 // Or await clerkClient().users...
@@ -65,7 +65,7 @@ const AssignmentPage = async ({
                 if (clerkUser) {
                     user = {
                         fullName: `${clerkUser.firstName} ${clerkUser.lastName}`,
-                        email: clerkUser.emailAddresses[0]?.emailAddress,
+                        email: clerkUser.emailAddresses[0]?.emailAddress ?? null,
                     }
                 }
             } catch (e) {

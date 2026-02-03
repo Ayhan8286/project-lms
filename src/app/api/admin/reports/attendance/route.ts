@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { format } from "date-fns";
 
-export async function GET(req: Request) {
+export async function GET() {
     try {
         const { userId } = await auth();
 
@@ -14,19 +14,26 @@ export async function GET(req: Request) {
 
         const records = await db.attendance.findMany({
             orderBy: { date: "desc" },
-            include: { course: true }
         });
 
+        // Fetch course details separately
+        const courseIds = [...new Set(records.map(r => r.courseId))];
+        const courses = await db.course.findMany({
+            where: { id: { in: courseIds } },
+            select: { id: true, title: true }
+        });
+        const courseMap = new Map(courses.map(c => [c.id, c.title]));
+
         const csvRows = [
-            ["Date", "Student Search ID", "Course", "Status"]
+            ["Date", "Student ID", "Course", "Status"]
         ];
 
         records.forEach(rec => {
             csvRows.push([
                 format(rec.date, "yyyy-MM-dd"),
-                rec.studentId, // Note: This is usually the User ID
-                rec.course.title,
-                rec.present ? "Present" : "Absent"
+                rec.userId,
+                courseMap.get(rec.courseId) || "Unknown Course",
+                "Present" // Attendance records indicate presence
             ]);
         });
 

@@ -49,15 +49,6 @@ const ChildAttendancePage = async ({
         where: {
             userId: childId,
         },
-        include: {
-            // Include Course details if possible. 
-            // Prisma schema has `courseId` but no relation defined in `Attendance` model to `Course`?
-            // Let's check Schema...
-            // `courseId String` exists. But `@relation` likely missing in Schema view I recalled.
-            // If missing, I can't `include: { course: true }`.
-            // I'll assume I need to fetch courses manually or update schema.
-            // Let's check schema again or just fetch courses separately.
-        },
         orderBy: {
             date: "desc",
         }

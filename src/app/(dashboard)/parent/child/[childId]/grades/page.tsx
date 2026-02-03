@@ -188,7 +188,7 @@ const ChildGradesPage = async ({
                             {assignmentResults.map((res) => (
                                 <tr key={res.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                     <td className="p-4 align-middle font-medium">{res.assignment.chapter.course.title}</td>
-                                    <td className="p-4 align-middle">{res.assignment.title || "Untitled Assignment"}</td>
+                                    <td className="p-4 align-middle">{res.assignment.chapter.title || "Untitled Assignment"}</td>
                                     <td className="p-4 align-middle">
                                         <span className={(res.grade || 0) >= 50 ? "text-emerald-600 font-bold" : "text-red-600 font-bold"}>
                                             {res.grade}/100

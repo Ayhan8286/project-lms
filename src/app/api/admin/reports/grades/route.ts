@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { format } from "date-fns";
 
-export async function GET(req: Request) {
+export async function GET() {
     try {
         const { userId } = await auth();
 
@@ -29,17 +29,22 @@ export async function GET(req: Request) {
                 res.userId,
                 res.chapter.course.title,
                 res.chapter.title,
-                "Completed" // Start just tracks completion for now, we'd need a Score field in UserProgress for actual marks if we had it. 
-                // Wait, UserProgress just tracks 'isCompleted'. 
-                // Do we have actual Quiz submissions?
-                // The Schema for Quiz had Questions/Answers, but do we store student answers?
-                // Looking at UserProgress, it seems boolean.
-                // Let's check AssignmentSubmission for grades.
+                res.score ? res.score.toString() : "Completed"
             ]);
         });
 
         const assignments = await db.assignmentSubmission.findMany({
-            include: { assignment: { include: { course: true } } }
+            include: {
+                assignment: {
+                    include: {
+                        chapter: {
+                            include: {
+                                course: true
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         assignments.forEach(sub => {
@@ -47,8 +52,8 @@ export async function GET(req: Request) {
                 "Assignment",
                 format(sub.createdAt, "yyyy-MM-dd"),
                 sub.userId,
-                sub.assignment.course.title,
-                sub.assignment.title,
+                sub.assignment.chapter.course.title,
+                sub.assignment.chapter.title,
                 sub.grade ? sub.grade.toString() : "Pending"
             ]);
         });
@@ -67,3 +72,4 @@ export async function GET(req: Request) {
         return new NextResponse("Internal Error", { status: 500 });
     }
 }
+

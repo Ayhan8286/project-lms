@@ -10,9 +10,9 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-import { Editor } from "@/components/Editor"; // Assumes Editor component exists from Step 625
+import { Editor } from "@/components/editor";
 import { Button } from "@/components/ui/button";
-import { Preview } from "@/components/Preview"; // Assuming Preview exists
+import { Preview } from "@/components/preview";
 
 interface ChapterDescriptionFormProps {
     initialData: {
