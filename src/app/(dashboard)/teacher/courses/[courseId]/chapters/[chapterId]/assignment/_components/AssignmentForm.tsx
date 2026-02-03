@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { Assignment } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
-import { Editor } from "@/components/editor";
+import { Editor } from "@/components/Editor";
 import { Preview } from "@/components/preview";
 import { cn } from "@/lib/utils";
 
